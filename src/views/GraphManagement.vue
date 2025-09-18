@@ -306,7 +306,12 @@ const handleQueryCausalPaths = async () => {
         layout: 'force',
         roam: true,
         label: { show: true, position: 'right', formatter: '{b}' },
-        force: { repulsion: 250, edgeLength: 150, layoutAnimation: true },
+        force: {
+          repulsion: 400,
+          edgeLength: 150,
+          layoutAnimation: true,
+          gravity: 0.1
+        },
 
         // 关键：在这里明确地再次声明箭头样式，确保不会丢失
         edgeSymbol: ['none', 'arrow'],
@@ -316,7 +321,7 @@ const handleQueryCausalPaths = async () => {
           color: '#e6a23c',
           width: 3,
           opacity: 1,
-          curveness: 0.2
+          curveness: 0.1
         },
 
         data: pathNodes,   // 使用我们新构造的节点数据

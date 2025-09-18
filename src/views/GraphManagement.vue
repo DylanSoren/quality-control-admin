@@ -1,7 +1,7 @@
 <template>
   <el-container style="height: 100vh;">
     <el-header style="text-align: right; font-size: 12px; border-bottom: 1px solid #eee;">
-      <el-button type="warning" @click="runArrowTestDemo" plain>运行箭头测试</el-button>
+<!--      <el-button type="warning" @click="runArrowTestDemo" plain>运行箭头测试</el-button>-->
       <el-button type="success" @click="fetchAllNodesAndRelationships" :loading="loading">加载/刷新全图</el-button>
       <el-button type="danger" @click="handleInitDatabase">初始化数据库</el-button>
     </el-header>
@@ -478,171 +478,171 @@ const handleInitDatabase = async () => {
   }
 };
 
-// --- 添加这个独立的测试函数 ---
-const runArrowTestDemo = async () => {
-  const defectName = "结合力不良"
-
-  if (!defectName) {
-    ElMessage.warning('请输入缺陷名称');
-    myChart.setOption({ series: [chartOption.series[0]] }, true);
-    return;
-  }
-
-  try {
-    await api.findCausalPathsForDefect(defectName);
-    const paths = [
-      [
-        {
-          "id": 124,
-          "name": "整平剂不足",
-          "standard": null,
-          "description": "如JGB",
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        },
-        {
-          "id": 125,
-          "name": "板面不平",
-          "standard": null,
-          "description": "板面微观不平度 (Rz) 超 3µm",
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        }
-      ],
-      [
-        {
-          "id": 127,
-          "name": "油污残留",
-          "standard": null,
-          "description": "如指纹、助焊剂",
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        },
-        {
-          "id": 128,
-          "name": "镀层“孤岛状”沉积",
-          "standard": null,
-          "description": null,
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        }
-      ],
-      [
-        {
-          "id": 129,
-          "name": "微蚀深度过浅",
-          "standard": "微蚀深度需要保持在1.0-1.5µm",
-          "description": null,
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        },
-        {
-          "id": 130,
-          "name": "氧化层未除净",
-          "standard": null,
-          "description": null,
-          "leadsToFactor": [],
-          "leadsToDefect": []
-        }
-      ]
-    ]; // paths 是一个路径数组, e.g., [[nodeA, nodeB], [nodeC]]
-    console.log(JSON.stringify(paths, null, 2))
-
-    if (!paths || paths.length === 0) {
-      ElMessage.info(`未找到关于缺陷 "${defectName}" 的因果路径`);
-      myChart.setOption({ series: [{ ...chartOption.series[0], data: [], links: [] }] }, true);
-      return;
-    }
-
-    const pathNodesMap = new Map(); // 使用 Map 存储节点，避免重复
-    const pathLinks = [];          // 存储路径中的关系
-
-    // 1. 先添加最终的缺陷节点
-    const finalDefectNode = chartOption.series[0].data.find(n => n.name === defectName);
-    if (finalDefectNode) {
-      pathNodesMap.set(finalDefectNode.name, { // id: finalDefectNode.id, // <-- 不添加id
-        name: finalDefectNode.name,
-        category: 1,
-        symbolSize: 25,
-        typicalManifestations: finalDefectNode.typicalManifestations });
-    } else {
-      // 如果在原始数据中找不到，也手动添加一个
-      pathNodesMap.set(defectName, { name: defectName, category: 1, symbolSize: 25 });
-    }
-
-    // 2. 遍历后端返回的所有路径
-    paths.forEach(path => {
-      for (let i = 0; i < path.length; i++) {
-        const currentNode = path[i];
-
-        // 将当前路径节点添加到 Map 中（如果不存在）
-        if (!pathNodesMap.has(currentNode.name)) {
-          pathNodesMap.set(currentNode.name, {
-            name: currentNode.name,
-            category: 0,
-            symbolSize: 15,
-            standard: currentNode.standard,
-            description: currentNode.description
-          });
-        }
-
-        // 创建关系：从当前节点指向路径中的下一个节点
-        if (i < path.length - 1) {
-          pathLinks.push({
-            source: currentNode.name,
-            target: path[i + 1].name
-          });
-        } else {
-          // 如果是路径的最后一个节点，则创建指向最终缺陷节点的关系
-          pathLinks.push({
-            source: currentNode.name,
-            target: defectName
-          });
-        }
-      }
-    });
-    // console.log(pathNodesMap)
-    // console.log(pathLinks)
-
-    const pathNodes = Array.from(pathNodesMap.values());
-    // console.log(pathNodes)
-    // console.log('【最终节点数据】:', JSON.stringify(pathNodes, null, 2));
-    // console.log('【最终关系数据】:', JSON.stringify(pathLinks, null, 2));
-
-    const newOption = {
-      tooltip: chartOption.tooltip, // 复用旧的提示框配置
-      legend: [{ data: ['影响因素', '缺陷类型'] }], // 复用图例
-      series: [{
-        type: 'graph',
-        layout: 'force',
-        roam: true,
-        label: { show: true, position: 'right', formatter: '{b}' },
-        force: { repulsion: 250, edgeLength: 90, layoutAnimation: true },
-
-        // 关键：在这里明确地再次声明箭头样式，确保不会丢失
-        edgeSymbol: ['none', 'arrow'],
-        edgeSymbolSize: 15,
-
-        lineStyle: {
-          color: '#e6a23c',
-          width: 3,
-          opacity: 1
-        },
-
-        data: pathNodes,   // 使用我们新构造的节点数据
-        links: pathLinks,  // 使用我们新构造的关系数据
-        categories: chartOption.series[0].categories // 复用分类样式
-      }]
-    };
-
-    myChart.setOption(newOption, true); // 使用 true 参数确保旧图被完全替换
-
-    ElMessage.success(`已筛选显示 ${paths.length} 条关于 "${defectName}" 的因果路径`);
-
-  } catch (error) {
-    ElMessage.error('查询失败: ' + (error.response?.data || error.message));
-  }
-};
+// --- 测试函数 ---
+// const runArrowTestDemo = async () => {
+//   const defectName = "结合力不良"
+//
+//   if (!defectName) {
+//     ElMessage.warning('请输入缺陷名称');
+//     myChart.setOption({ series: [chartOption.series[0]] }, true);
+//     return;
+//   }
+//
+//   try {
+//     await api.findCausalPathsForDefect(defectName);
+//     const paths = [
+//       [
+//         {
+//           "id": 124,
+//           "name": "整平剂不足",
+//           "standard": null,
+//           "description": "如JGB",
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         },
+//         {
+//           "id": 125,
+//           "name": "板面不平",
+//           "standard": null,
+//           "description": "板面微观不平度 (Rz) 超 3µm",
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         }
+//       ],
+//       [
+//         {
+//           "id": 127,
+//           "name": "油污残留",
+//           "standard": null,
+//           "description": "如指纹、助焊剂",
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         },
+//         {
+//           "id": 128,
+//           "name": "镀层“孤岛状”沉积",
+//           "standard": null,
+//           "description": null,
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         }
+//       ],
+//       [
+//         {
+//           "id": 129,
+//           "name": "微蚀深度过浅",
+//           "standard": "微蚀深度需要保持在1.0-1.5µm",
+//           "description": null,
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         },
+//         {
+//           "id": 130,
+//           "name": "氧化层未除净",
+//           "standard": null,
+//           "description": null,
+//           "leadsToFactor": [],
+//           "leadsToDefect": []
+//         }
+//       ]
+//     ]; // paths 是一个路径数组, e.g., [[nodeA, nodeB], [nodeC]]
+//     console.log(JSON.stringify(paths, null, 2))
+//
+//     if (!paths || paths.length === 0) {
+//       ElMessage.info(`未找到关于缺陷 "${defectName}" 的因果路径`);
+//       myChart.setOption({ series: [{ ...chartOption.series[0], data: [], links: [] }] }, true);
+//       return;
+//     }
+//
+//     const pathNodesMap = new Map(); // 使用 Map 存储节点，避免重复
+//     const pathLinks = [];          // 存储路径中的关系
+//
+//     // 1. 先添加最终的缺陷节点
+//     const finalDefectNode = chartOption.series[0].data.find(n => n.name === defectName);
+//     if (finalDefectNode) {
+//       pathNodesMap.set(finalDefectNode.name, { // id: finalDefectNode.id, // <-- 不添加id
+//         name: finalDefectNode.name,
+//         category: 1,
+//         symbolSize: 25,
+//         typicalManifestations: finalDefectNode.typicalManifestations });
+//     } else {
+//       // 如果在原始数据中找不到，也手动添加一个
+//       pathNodesMap.set(defectName, { name: defectName, category: 1, symbolSize: 25 });
+//     }
+//
+//     // 2. 遍历后端返回的所有路径
+//     paths.forEach(path => {
+//       for (let i = 0; i < path.length; i++) {
+//         const currentNode = path[i];
+//
+//         // 将当前路径节点添加到 Map 中（如果不存在）
+//         if (!pathNodesMap.has(currentNode.name)) {
+//           pathNodesMap.set(currentNode.name, {
+//             name: currentNode.name,
+//             category: 0,
+//             symbolSize: 15,
+//             standard: currentNode.standard,
+//             description: currentNode.description
+//           });
+//         }
+//
+//         // 创建关系：从当前节点指向路径中的下一个节点
+//         if (i < path.length - 1) {
+//           pathLinks.push({
+//             source: currentNode.name,
+//             target: path[i + 1].name
+//           });
+//         } else {
+//           // 如果是路径的最后一个节点，则创建指向最终缺陷节点的关系
+//           pathLinks.push({
+//             source: currentNode.name,
+//             target: defectName
+//           });
+//         }
+//       }
+//     });
+//     // console.log(pathNodesMap)
+//     // console.log(pathLinks)
+//
+//     const pathNodes = Array.from(pathNodesMap.values());
+//     // console.log(pathNodes)
+//     // console.log('【最终节点数据】:', JSON.stringify(pathNodes, null, 2));
+//     // console.log('【最终关系数据】:', JSON.stringify(pathLinks, null, 2));
+//
+//     const newOption = {
+//       tooltip: chartOption.tooltip, // 复用旧的提示框配置
+//       legend: [{ data: ['影响因素', '缺陷类型'] }], // 复用图例
+//       series: [{
+//         type: 'graph',
+//         layout: 'force',
+//         roam: true,
+//         label: { show: true, position: 'right', formatter: '{b}' },
+//         force: { repulsion: 250, edgeLength: 90, layoutAnimation: true },
+//
+//         // 关键：在这里明确地再次声明箭头样式，确保不会丢失
+//         edgeSymbol: ['none', 'arrow'],
+//         edgeSymbolSize: 15,
+//
+//         lineStyle: {
+//           color: '#e6a23c',
+//           width: 3,
+//           opacity: 1
+//         },
+//
+//         data: pathNodes,   // 使用我们新构造的节点数据
+//         links: pathLinks,  // 使用我们新构造的关系数据
+//         categories: chartOption.series[0].categories // 复用分类样式
+//       }]
+//     };
+//
+//     myChart.setOption(newOption, true); // 使用 true 参数确保旧图被完全替换
+//
+//     ElMessage.success(`已筛选显示 ${paths.length} 条关于 "${defectName}" 的因果路径`);
+//
+//   } catch (error) {
+//     ElMessage.error('查询失败: ' + (error.response?.data || error.message));
+//   }
+// };
 
 // --- ECharts 初始化和事件绑定 ---
 onMounted(() => {

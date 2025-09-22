@@ -6,7 +6,7 @@
       @close="$emit('update:modelValue', false)"
   >
     <div v-if="node" class="node-detail-content">
-      <p><strong>ID:</strong> {{ node.id }}</p>
+<!--      <p><strong>ID:</strong> {{ node.id }}</p>-->
       <p><strong>名称:</strong> {{ node.name }}</p>
       <p><strong>类型:</strong>
         <el-tag :type="node.category === 0 ? '' : 'danger'">

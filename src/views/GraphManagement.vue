@@ -3,6 +3,8 @@
     <el-header style="text-align: right; font-size: 12px; border-bottom: 1px solid #eee;">
 <!--      <el-button type="warning" @click="runArrowTestDemo" plain>运行箭头测试</el-button>-->
       <el-button type="success" @click="fetchAllNodesAndRelationships" :loading="loading">加载/刷新全图</el-button>
+      <el-button color="#626aef" type="success" @click="fetchAllFactors" :loading="loading">加载全部影响因素</el-button>
+      <el-button color="#626aef" type="success" @click="fetchAllDefects" :loading="loading">加载全部缺陷类型</el-button>
       <el-button type="danger" @click="handleInitDatabase">初始化数据库</el-button>
     </el-header>
 
@@ -144,10 +146,18 @@ Object.assign(chartOption, {
     layout: 'force',
     roam: true,
     label: { show: true, position: 'right', formatter: '{b}' },
-    force: { repulsion: 150, edgeLength: 60 },
+    force: { repulsion: 700, edgeLength: 60 },
 
+    // 关键：在这里明确地再次声明箭头样式，确保不会丢失
     edgeSymbol: ['none', 'arrow'],
-    edgeSymbolSize: 10,
+    edgeSymbolSize: 15,
+
+    lineStyle: {
+      color: '#bcbcbc',
+      width: 3,
+      opacity: 1,
+      curveness: 0.1
+    },
 
     data: [],
     links: [],
@@ -164,22 +174,29 @@ Object.assign(chartOption, {
 const fetchAllNodesAndRelationships = async () => {
   loading.value = true;
   try {
+    // 1. 调用后端API，现在 res.data 的结构是 { nodes: [], links: [] }
     const res = await api.getAllNodes();
-    const nodes = res.data.map(node => {
+    const graphData = res.data;
+
+    // 2. 处理节点数据（逻辑不变，只是数据来源变了）
+    const nodes = graphData.nodes.map(node => {
       const isFactor = 'leadsToDefect' in node || 'leadsToFactor' in node;
-      return { id: node.id, name: node.name, category: isFactor ? 0 : 1, ...node };
+      return {
+        name: node.name,
+        category: isFactor ? 0 : 1,
+        symbolSize: isFactor ? 15 : 25
+      };
     });
 
-    const links = [];
-    nodes.filter(n => n.category === 0).forEach(factorNode => {
-      factorNode.leadsToFactor?.forEach(target => links.push({ source: factorNode.name, target: target.name }));
-      factorNode.leadsToDefect?.forEach(target => links.push({ source: factorNode.name, target: target.name }));
-    });
+    // 3. 【核心简化】直接使用后端返回的关系数据，不再需要前端自己计算
+    const links = graphData.links;
 
+    // 4. 更新图表
     chartOption.series[0].data = nodes;
     chartOption.series[0].links = links;
-    myChart.setOption(chartOption, true); // true 表示不与之前 option 合并
+    myChart.setOption(chartOption, true);
     ElMessage.success('图谱加载成功！');
+
   } catch (error) {
     ElMessage.error('图谱加载失败: ' + (error.response?.data || error.message));
   } finally {
@@ -307,7 +324,7 @@ const handleQueryCausalPaths = async () => {
         roam: true,
         label: { show: true, position: 'right', formatter: '{b}' },
         force: {
-          repulsion: 400,
+          repulsion: 700,
           edgeLength: 150,
           layoutAnimation: true,
           gravity: 0.1
@@ -338,6 +355,44 @@ const handleQueryCausalPaths = async () => {
     ElMessage.error('查询失败: ' + (error.response?.data || error.message));
   }
 };
+
+/**
+ * 获取所有影响因素
+ */
+const fetchAllFactors = async () => {
+  const allFactors = chartOption.series[0].data.filter(node => node.category === 0);
+  if (allFactors.length === 0) {
+    ElMessage.info('当前图中没有影响因素节点');
+    return;
+  }
+  myChart.setOption({
+    series: [{
+      ...chartOption.series[0],
+      data: allFactors,
+      links: [] // 显示全部同类节点时，不显示关系线以避免混乱
+    }]
+  }, true);
+  ElMessage.success(`已显示全部 ${allFactors.length} 个影响因素`);
+}
+
+/**
+ * 获取所有缺陷类型
+ */
+const fetchAllDefects = async () => {
+  const allDefects = chartOption.series[0].data.filter(node => node.category === 1);
+  if (allDefects.length === 0) {
+    ElMessage.info('当前图中没有缺陷类型节点');
+    return;
+  }
+  myChart.setOption({
+    series: [{
+      ...chartOption.series[0],
+      data: allDefects,
+      links: []
+    }]
+  }, true);
+  ElMessage.success(`已显示全部 ${allDefects.length} 个缺陷类型`);
+}
 
 /**
  * 处理查询影响因素的逻辑

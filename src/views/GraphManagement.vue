@@ -184,7 +184,10 @@ const fetchAllNodesAndRelationships = async () => {
       return {
         name: node.name,
         category: isFactor ? 0 : 1,
-        symbolSize: isFactor ? 15 : 25
+        symbolSize: isFactor ? 15 : 25,
+        standard: isFactor ? node.standard : null,
+        description: isFactor ? node.description : null,
+        typicalManifestations: isFactor ? null : node.typicalManifestations
       };
     });
 

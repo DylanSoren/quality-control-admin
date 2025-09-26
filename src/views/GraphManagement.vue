@@ -1,13 +1,5 @@
 <template>
-  <el-container style="height: 100vh;">
-    <el-header style="text-align: right; font-size: 12px; border-bottom: 1px solid #eee;">
-<!--      <el-button type="warning" @click="runArrowTestDemo" plain>运行箭头测试</el-button>-->
-      <el-button type="success" @click="fetchAllNodesAndRelationships" :loading="loading">加载/刷新全图</el-button>
-      <el-button color="#626aef" type="success" @click="fetchAllFactors" :loading="loading">加载全部影响因素</el-button>
-      <el-button color="#626aef" type="success" @click="fetchAllDefects" :loading="loading">加载全部缺陷类型</el-button>
-      <el-button type="danger" @click="handleInitDatabase">初始化数据库</el-button>
-    </el-header>
-
+  <el-container style="height: 100%;">
     <el-container>
       <el-aside width="350px" style="border-right: 1px solid #eee; padding: 20px;">
         <el-tabs v-model="activeTab">
@@ -67,7 +59,6 @@
                 </el-input>
               </el-form-item>
             </el-form>
-
             <el-form label-position="top" class="query-form">
               <el-form-item label="查询缺陷类型">
                 <el-input v-model="queryForm.defectTypeName" placeholder="输入名称精确查找，不填则全查">
@@ -77,17 +68,15 @@
                 </el-input>
               </el-form-item>
             </el-form>
-
             <el-form label-position="top" class="query-form">
               <el-form-item label="模糊搜索节点">
                 <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找节点">
                   <template #append>
-                    <el-button @click="handleFuzzySearch">查询节点</el-button>
+                    <el-button @click="handleFuzzySearch">搜索</el-button>
                   </template>
                 </el-input>
               </el-form-item>
             </el-form>
-
             <el-form label-position="top" class="query-form">
               <el-form-item label="查询缺陷的因果路径">
                 <el-input v-model="queryForm.defectName" placeholder="输入缺陷名称">
@@ -789,14 +778,18 @@ onMounted(() => {
   });
 });
 
+// 将需要被父组件调用的方法和响应式状态暴露出去
+defineExpose({
+  fetchAllNodesAndRelationships,
+  fetchAllFactors,
+  fetchAllDefects,
+  handleInitDatabase,
+  loading // loading 状态也需要暴露，以便父组件中的按钮能显示加载状态
+});
+
 </script>
 
 <style>
-.el-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
 .el-form-item {
   margin-bottom: 18px;
 }

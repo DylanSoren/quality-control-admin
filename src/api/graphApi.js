@@ -57,6 +57,13 @@ export const deleteRelationship = (relationshipDto) => apiClient.delete('/graph/
 // --- 查询分析 ---
 
 /**
+ * 根据名称模糊搜索节点
+ * @param {string} name - 搜索关键词
+ */
+export const findNodesByNameFuzzy = (name) => apiClient.get('/graph/nodes/search', { params: { name } });
+
+
+/**
  * 查找指定缺陷的所有直接原因
  * @param {string} defectName 缺陷名称
  */

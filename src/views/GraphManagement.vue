@@ -60,7 +60,7 @@
           <el-tab-pane label="查询分析" name="query">
             <el-form label-position="top" class="query-form">
               <el-form-item label="查询影响因素">
-                <el-input v-model="queryForm.factorName" placeholder="输入名称可精确查找，不填则全部查询">
+                <el-input v-model="queryForm.factorName" placeholder="输入名称精确查找，不填则全查">
                   <template #append>
                     <el-button @click="handleQueryFactor">查询因素</el-button>
                   </template>
@@ -70,9 +70,19 @@
 
             <el-form label-position="top" class="query-form">
               <el-form-item label="查询缺陷类型">
-                <el-input v-model="queryForm.defectTypeName" placeholder="输入名称可精确查找，不填则全部查询">
+                <el-input v-model="queryForm.defectTypeName" placeholder="输入名称精确查找，不填则全查">
                   <template #append>
                     <el-button @click="handleQueryDefect">查询缺陷</el-button>
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-form>
+
+            <el-form label-position="top" class="query-form">
+              <el-form-item label="模糊搜索节点">
+                <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找节点">
+                  <template #append>
+                    <el-button @click="handleFuzzySearch">查询节点</el-button>
                   </template>
                 </el-input>
               </el-form-item>
@@ -124,6 +134,7 @@ const relationshipForm = reactive({ startNodeName: '', endNodeName: '' });
 const queryForm = reactive({
   factorName: '',     // 对应“查询影响因素”输入框
   defectTypeName: '', // 对应“查询缺陷类型”输入框
+  fuzzySearchName: '', // 对应“模糊搜索节点”输入框
   defectName: '',     // 对应“查询因果路径”输入框
 });
 
@@ -243,6 +254,9 @@ const handleCreateRelationship = async () => {
   }
 }
 
+/**
+ * 查询因果路径
+ */
 const handleQueryCausalPaths = async () => {
   const defectName = (queryForm.defectName || '').trim();
 
@@ -356,6 +370,59 @@ const handleQueryCausalPaths = async () => {
 
   } catch (error) {
     ElMessage.error('查询失败: ' + (error.response?.data || error.message));
+  }
+};
+
+/**
+ * 处理模糊搜索逻辑
+ */
+const handleFuzzySearch = async () => {
+  const name = queryForm.fuzzySearchName.trim();
+  if (!name) {
+    ElMessage.warning('请输入搜索关键词！');
+    return;
+  }
+
+  try {
+    // 1. 调用我们新添加的API
+    const res = await api.findNodesByNameFuzzy(name);
+    const foundNodes = res.data;
+
+    if (!foundNodes || foundNodes.length === 0) {
+      ElMessage.info(`未找到名称包含 "${name}" 的节点`);
+      // 清空图表
+      myChart.setOption({ series: [{ ...chartOption.series[0], data: [], links: [] }] }, true);
+      return;
+    }
+
+    // 2. 将后端返回的数据转换为 ECharts 需要的格式
+    //    (此处的逻辑与 fetchAllNodesAndRelationships 中处理节点的逻辑保持一致，以确保数据结构统一)
+    const nodesForGraph = foundNodes.map(node => {
+      const isFactor = 'leadsToDefect' in node || 'leadsToFactor' in node;
+      return {
+        name: node.name,
+        category: isFactor ? 0 : 1,
+        symbolSize: isFactor ? 15 : 25,
+        // 带上节点的详细信息，以便点击时抽屉能显示
+        standard: isFactor ? node.standard : null,
+        description: isFactor ? node.description : null,
+        typicalManifestations: isFactor ? null : node.typicalManifestations
+      };
+    });
+
+    // 3. 更新图表，只显示搜索到的节点，不显示关系
+    myChart.setOption({
+      series: [{
+        ...chartOption.series[0],
+        data: nodesForGraph,
+        links: []
+      }]
+    }, true);
+
+    ElMessage.success(`已筛选显示 ${foundNodes.length} 个相关节点`);
+
+  } catch (error) {
+    ElMessage.error('搜索失败: ' + (error.response?.data || error.message)); //
   }
 };
 

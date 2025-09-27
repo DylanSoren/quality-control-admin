@@ -101,6 +101,12 @@
       :node="selectedNode"
       @delete-node="handleDeleteNode"
   />
+
+  <RelationshipDetailDrawer
+      v-model="relationshipDrawerVisible"
+      :relationship="selectedRelationship"
+      @delete-relationship="handleDeleteRelationship"
+  />
 </template>
 
 <script setup>
@@ -109,6 +115,8 @@ import * as echarts from 'echarts';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import * as api from '../api/graphApi';
 import NodeDetailDrawer from '../components/NodeDetailDrawer.vue';
+import RelationshipDetailDrawer from '../components/RelationshipDetailDrawer.vue';
+
 
 // --- 响应式状态定义 ---
 const graphChart = ref(null);
@@ -117,6 +125,10 @@ const activeTab = ref('node');
 const drawerVisible = ref(false);
 const selectedNode = ref(null);
 const loading = ref(false);
+
+// 关系抽屉的状态
+const relationshipDrawerVisible = ref(false);
+const selectedRelationship = ref(null);
 
 const nodeForm = reactive({ name: '', type: 'factor', standard: '', description: '', typicalManifestations: '' });
 const relationshipForm = reactive({ startNodeName: '', endNodeName: '' });
@@ -577,6 +589,35 @@ const handleDeleteNode = async (name) => {
   }
 }
 
+/**
+ * 处理删除关系的函数
+ * @param {object} relationship - 包含 source 和 target 的关系对象
+ */
+const handleDeleteRelationship = async (relationship) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除从 "${relationship.source}" 到 "${relationship.target}" 的关系吗？`, '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    // 假设后端删除关系的API需要起始节点名和结束节点名
+    // 你需要确保在 graphApi.js 中有对应的 deleteRelationship 函数
+    await api.deleteRelationship({
+      startNodeName: relationship.source,
+      endNodeName: relationship.target
+    });
+
+    ElMessage.success('关系删除成功！');
+    relationshipDrawerVisible.value = false; // 关闭抽屉
+    fetchAllNodesAndRelationships(); // 刷新图谱
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败: ' + (error.response?.data || error.message));
+    }
+  }
+};
+
 const handleInitDatabase = async () => {
   try {
     await ElMessageBox.confirm('这将清空现有数据并从文件重新导入，确定吗？', '严重警告', {
@@ -767,6 +808,10 @@ onMounted(() => {
     if (params.dataType === 'node') {
       selectedNode.value = params.data;
       drawerVisible.value = true;
+    } else if (params.dataType === 'edge') {
+      // 当点击的是关系边时
+      selectedRelationship.value = params.data;
+      relationshipDrawerVisible.value = true;
     }
   });
 

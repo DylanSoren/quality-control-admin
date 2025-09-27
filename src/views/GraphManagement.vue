@@ -69,10 +69,10 @@
               </el-form-item>
             </el-form>
             <el-form label-position="top" class="query-form">
-              <el-form-item label="模糊搜索节点">
+              <el-form-item label="模糊查询节点">
                 <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找节点">
                   <template #append>
-                    <el-button @click="handleFuzzySearch">搜索</el-button>
+                    <el-button @click="handleFuzzySearch">模糊查询</el-button>
                   </template>
                 </el-input>
               </el-form-item>

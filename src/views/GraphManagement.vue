@@ -100,12 +100,14 @@
       v-model="drawerVisible"
       :node="selectedNode"
       @delete-node="handleDeleteNode"
+      :view-mode="props.viewMode"
   />
 
   <RelationshipDetailDrawer
       v-model="relationshipDrawerVisible"
       :relationship="selectedRelationship"
       @delete-relationship="handleDeleteRelationship"
+      :view-mode="props.viewMode"
   />
 </template>
 

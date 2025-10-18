@@ -17,7 +17,7 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <div class="drawer-footer">
+      <div v-if="viewMode !== 'query'" class="drawer-footer">
         <el-button type="danger" @click="handleDelete" plain>
           删除此关系
         </el-button>
@@ -33,26 +33,26 @@
 import { defineProps, defineEmits } from 'vue';
 import { ElButton, ElDrawer, ElDescriptions, ElDescriptionsItem, ElTag } from 'element-plus';
 
-// --- Props & Emits ---
 const props = defineProps({
-  // 用于 v-model 绑定抽屉的显示状态
   modelValue: {
     type: Boolean,
     required: true,
   },
-  // 选中的关系对象，ECharts 点击后会传入 { source, target }
   relationship: {
     type: Object,
     default: () => null,
+  },
+  // 【新增】接收 viewMode 属性
+  viewMode: {
+    type: String,
+    default: 'admin', // 默认为 admin 模式
   },
 });
 
 const emit = defineEmits(['update:modelValue', 'delete-relationship']);
 
-// --- Methods ---
 const handleDelete = () => {
   if (props.relationship) {
-    // 触发父组件中监听的 delete-relationship 事件，并把关系对象传回去
     emit('delete-relationship', props.relationship);
   }
 };

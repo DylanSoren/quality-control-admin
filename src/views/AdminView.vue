@@ -10,7 +10,7 @@
       >
         <el-menu-item index="graph">
           <el-icon><Share /></el-icon>
-          品控知识图谱管理
+          品控知识谱管理
         </el-menu-item>
         <el-menu-item index="agent">
           <el-icon><Cpu /></el-icon>
@@ -25,7 +25,7 @@
               @click="callGraphMethod('fetchAllNodesAndRelationships')"
               :loading="isGraphLoading"
           >
-            加载/刷新全图
+            刷新知识库
           </el-button>
           <el-button
               color="#626aef"
@@ -43,7 +43,7 @@
           >
             加载全部缺陷类型
           </el-button>
-          <el-button type="danger" @click="callGraphMethod('handleInitDatabase')">初始化数据库</el-button>
+          <el-button type="danger" @click="callGraphMethod('handleInitDatabase')">初始化知识库</el-button>
         </template>
         <template v-if="activeView === 'agent'">
         </template>

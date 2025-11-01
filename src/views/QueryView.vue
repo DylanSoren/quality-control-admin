@@ -10,7 +10,7 @@
       >
         <el-menu-item index="graph">
           <el-icon><Share /></el-icon>
-          知识图谱查询
+          品控知识谱查询
         </el-menu-item>
         <el-menu-item index="agent">
           <el-icon><Cpu /></el-icon>
@@ -25,7 +25,7 @@
               @click="callGraphMethod('fetchAllNodesAndRelationships')"
               :loading="isGraphLoading"
           >
-            加载/刷新全图
+            刷新知识库
           </el-button>
           <el-button
               color="#626aef"

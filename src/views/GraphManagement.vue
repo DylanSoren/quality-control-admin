@@ -3,13 +3,13 @@
     <el-container>
       <el-aside width="350px" style="border-right: 1px solid #eee; padding: 20px;">
         <el-tabs v-model="activeTab">
-          <el-tab-pane v-if="viewMode !== 'query'" label="节点管理" name="node">
+          <el-tab-pane v-if="viewMode !== 'query'" label="知识条目管理" name="node">
             <el-form :model="nodeForm" label-position="top">
-              <h4>创建 / 更新节点</h4>
-              <el-form-item label="节点名称">
-                <el-input v-model="nodeForm.name" placeholder="请输入唯一的节点名称"></el-input>
+              <h4>添加或修改知识条目</h4>
+              <el-form-item label="知识条目名称">
+                <el-input v-model="nodeForm.name" placeholder="请输入唯一的知识条目名称"></el-input>
               </el-form-item>
-              <el-form-item label="节点类型">
+              <el-form-item label="知识条目类型">
                 <el-select v-model="nodeForm.type" placeholder="请选择类型" style="width: 100%;">
                   <el-option label="影响因素" value="factor"></el-option>
                   <el-option label="缺陷类型" value="defect"></el-option>
@@ -17,39 +17,49 @@
               </el-form-item>
               <div v-if="nodeForm.type === 'factor'">
                 <el-form-item label="执行标准 (可选)">
-                  <el-input v-model="nodeForm.standard"></el-input>
+                  <el-input v-model="nodeForm.standard" placeholder="例如：温度应在 24-26℃"></el-input>
                 </el-form-item>
-                <el-form-item label="描述 (可选)">
+                <el-form-item label="影响因素典型表现 (可选)">
                   <el-input v-model="nodeForm.description" type="textarea"></el-input>
                 </el-form-item>
               </div>
               <div v-if="nodeForm.type === 'defect'">
-                <el-form-item label="典型表现 (可选)">
+                <el-form-item label="缺陷类型典型表现 (可选)">
                   <el-input v-model="nodeForm.typicalManifestations" type="textarea"></el-input>
                 </el-form-item>
               </div>
               <el-form-item>
-                <el-button type="primary" @click="handleCreateOrUpdateNode">提交</el-button>
+                <el-button type="primary" @click="handleCreateOrUpdateNode">保存知识条目</el-button>
               </el-form-item>
             </el-form>
           </el-tab-pane>
 
-          <el-tab-pane v-if="viewMode !== 'query'" label="关系管理" name="relationship">
+          <el-tab-pane v-if="viewMode !== 'query'" label="因果关系管理" name="relationship">
             <el-form :model="relationshipForm" label-position="top">
-              <h4>创建关系 (影响因素 -> 节点)</h4>
-              <el-form-item label="起始节点名称">
+              <h4>创建因果关系</h4>
+              <h4>(影响因素 -> (影响因素/缺陷类型))</h4>
+              <el-form-item label="起始知识条目名称">
                 <el-input v-model="relationshipForm.startNodeName" placeholder="必须是影响因素"></el-input>
               </el-form-item>
-              <el-form-item label="结束节点名称">
-                <el-input v-model="relationshipForm.endNodeName" placeholder="影响因素或缺陷类型"></el-input>
+              <el-form-item label="结束知识条目名称">
+                <el-input v-model="relationshipForm.endNodeName" placeholder="可以是影响因素或缺陷类型"></el-input>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="handleCreateRelationship">创建关系</el-button>
+                <el-button type="primary" @click="handleCreateRelationship">保存因果关系</el-button>
               </el-form-item>
             </el-form>
           </el-tab-pane>
 
           <el-tab-pane label="查询分析" name="query">
+            <el-form label-position="top" class="query-form">
+              <el-form-item label="查询造成缺陷的原因">
+                <el-input v-model="queryForm.defectName" placeholder="输入缺陷名称">
+                  <template #append>
+                    <el-button @click="handleQueryCausalPaths">查询路径</el-button>
+                  </template>
+                </el-input>
+              </el-form-item>
+            </el-form>
             <el-form label-position="top" class="query-form">
               <el-form-item label="查询影响因素">
                 <el-input v-model="queryForm.factorName" placeholder="输入名称精确查找，不填则全查">
@@ -69,19 +79,10 @@
               </el-form-item>
             </el-form>
             <el-form label-position="top" class="query-form">
-              <el-form-item label="模糊查询节点">
+              <el-form-item label="模糊查询知识条目">
                 <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找节点">
                   <template #append>
                     <el-button @click="handleFuzzySearch">模糊查询</el-button>
-                  </template>
-                </el-input>
-              </el-form-item>
-            </el-form>
-            <el-form label-position="top" class="query-form">
-              <el-form-item label="查询缺陷的因果路径">
-                <el-input v-model="queryForm.defectName" placeholder="输入缺陷名称">
-                  <template #append>
-                    <el-button @click="handleQueryCausalPaths">查询路径</el-button>
                   </template>
                 </el-input>
               </el-form-item>
@@ -112,7 +113,6 @@
 </template>
 
 <script setup>
-// 【核心改动】从 'vue' 中导入 defineProps
 import { ref, onMounted, reactive, defineProps, watch } from 'vue';
 import * as echarts from 'echarts';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -120,7 +120,6 @@ import * as api from '../api/graphApi';
 import NodeDetailDrawer from '../components/NodeDetailDrawer.vue';
 import RelationshipDetailDrawer from '../components/RelationshipDetailDrawer.vue';
 
-// 【核心改动】接收父组件传递的 props
 const props = defineProps({
   viewMode: {
     type: String,
@@ -133,7 +132,6 @@ const props = defineProps({
 const graphChart = ref(null);
 let myChart = null;
 
-// 【核心改动】修改 activeTab 的初始值
 // 如果是查询模式，默认打开'query'页；否则打开'node'页
 const activeTab = ref(props.viewMode === 'query' ? 'query' : 'node');
 

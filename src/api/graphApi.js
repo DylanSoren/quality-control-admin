@@ -87,3 +87,51 @@ export const findDefectsCausedBy = (factorName) => apiClient.get('/graph/defects
  * 初始化数据库
  */
 export const initializeDatabase = () => apiClient.post('/admin/init-database');
+
+/**
+ * 调用 AI 智能体分析缺陷
+ * @param {string} defectType - 缺陷类型的名称
+ * @param {function} onMessage - 收到一个数据块时的回调函数
+ * @param {function} onComplete - 收到 "END" 信号时的回调函数
+ * @param {function} onError - 发生错误或收到 "ERROR" 信号时的回调函数
+ * @returns {EventSource} - 返回 EventSource 实例，以便调用方可以关闭它
+ */
+export const narrateDefectStream = (defectType, onMessage, onComplete, onError) => {
+    const url = `/api/graph/narrate/stream?defectType=${encodeURIComponent(defectType)}`;
+
+    const eventSource = new EventSource(url);
+
+    // 1. 关键修复：添加一个状态标志
+    let isStreamFinished = false;
+
+    // 2. 监听 "message" 事件 (数据)
+    eventSource.addEventListener("message", (event) => {
+        if (isStreamFinished) return; // 结束后不再处理任何消息
+        onMessage(event.data);
+    });
+
+    // 3. 监听 "END" 事件 (成功结束)
+    eventSource.addEventListener("END", (event) => {
+        isStreamFinished = true; // 标记为成功结束
+        onComplete(event.data);
+        eventSource.close();
+    });
+
+    // 4. 监听 "ERROR" 事件 (服务器推送的错误)
+    eventSource.addEventListener("ERROR", (event) => {
+        isStreamFinished = true; // 标记为已结束（无论成败）
+        onError(new Error(event.data || 'AI 分析时发生内部错误'));
+        eventSource.close();
+    });
+
+    // 5. 监听 "error" 事件 (底层网络错误)
+    eventSource.onerror = (error) => {
+        if (!isStreamFinished) {
+            isStreamFinished = true; // 标记为已结束
+            onError(new Error('无法连接到 AI 智能体，网络或服务异常。'));
+        }
+        eventSource.close();
+    };
+
+    return eventSource;
+};

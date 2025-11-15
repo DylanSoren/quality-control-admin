@@ -1,7 +1,7 @@
 <template>
   <el-drawer
       :model-value="modelValue"
-      title="关系详情"
+      title="因果关系详情"
       direction="rtl"
       size="600px"
       @update:model-value="$emit('update:modelValue', $event)"
@@ -9,22 +9,22 @@
   >
     <div v-if="relationship" class="drawer-content">
       <el-descriptions :column="1" border>
-        <el-descriptions-item label-class-name="my-label" label="起始节点">
-          <el-tag type="primary">{{ relationship.source }}</el-tag>
+        <el-descriptions-item label-class-name="my-label" label="起始知识条目">
+          <el-tag>{{ relationship.source }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label-class-name="my-label" label="结束节点">
-          <el-tag type="success">{{ relationship.target }}</el-tag>
+        <el-descriptions-item label-class-name="my-label" label="结束知识条目">
+          <el-tag>{{ relationship.target }}</el-tag>
         </el-descriptions-item>
       </el-descriptions>
 
       <div v-if="viewMode !== 'query'" class="drawer-footer">
-        <el-button type="danger" @click="handleDelete" plain>
-          删除此关系
+        <el-button type="danger" @click="handleDelete">
+          删除此因果关系
         </el-button>
       </div>
     </div>
     <div v-else class="drawer-content">
-      <p>没有选中任何关系。</p>
+      <p>没有选中任何因果关系。</p>
     </div>
   </el-drawer>
 </template>
@@ -71,5 +71,9 @@ const handleDelete = () => {
 }
 .my-label {
   width: 90px;
+}
+
+p {
+  color: var(--el-text-color-regular);
 }
 </style>

@@ -9,7 +9,7 @@ import router from './router'
 
 // 引入根组件和全局样式
 import App from './App.vue'
-import './assets/main.css'
+import './assets/styles/main.css'
 
 const app = createApp(App)
 

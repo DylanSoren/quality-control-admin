@@ -1,11 +1,11 @@
 <template>
   <el-container style="height: 100%;">
     <el-container>
-      <el-aside width="350px" style="border-right: 1px solid #eee; padding: 20px;">
+      <el-aside width="350px" style="border-right: 1px solid var(--el-border-color); padding: 20px;">
         <el-tabs v-model="activeTab">
           <el-tab-pane v-if="viewMode !== 'query'" label="知识条目管理" name="node">
             <el-form :model="nodeForm" label-position="top">
-              <h4>添加或修改知识条目</h4>
+              <h4 style="color: var(--el-text-color-primary);">添加或修改知识条目</h4>
               <el-form-item label="知识条目名称">
                 <el-input v-model="nodeForm.name" placeholder="请输入唯一的知识条目名称"></el-input>
               </el-form-item>
@@ -36,8 +36,8 @@
 
           <el-tab-pane v-if="viewMode !== 'query'" label="因果关系管理" name="relationship">
             <el-form :model="relationshipForm" label-position="top">
-              <h4>创建因果关系</h4>
-              <h4>(影响因素 -> (影响因素/缺陷类型))</h4>
+              <h4 style="color: var(--el-text-color-primary);">创建因果关系</h4>
+              <h4 style="color: var(--el-text-color-primary);">(影响因素 -> (影响因素/缺陷类型))</h4>
               <el-form-item label="起始知识条目名称">
                 <el-input v-model="relationshipForm.startNodeName" placeholder="必须是影响因素"></el-input>
               </el-form-item>
@@ -80,7 +80,7 @@
             </el-form>
             <el-form label-position="top" class="query-form">
               <el-form-item label="模糊查询知识条目">
-                <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找节点">
+                <el-input v-model="queryForm.fuzzySearchName" placeholder="输入关键词查找知识条目">
                   <template #append>
                     <el-button @click="handleFuzzySearch">模糊查询</el-button>
                   </template>
@@ -157,6 +157,11 @@ const queryForm = reactive({
 const chartOption = reactive({});
 Object.assign(chartOption, {
   tooltip: {
+    backgroundColor: 'var(--el-bg-color-overlay)',
+    borderColor: 'var(--el-border-color)',
+    textStyle: {
+      color: 'var(--el-text-color-primary)'
+    },
     formatter: (params) => {
       if (params.dataType === 'node') {
         return `<strong>${params.data.name}</strong><br/>类型: ${params.data.category === 0 ? '影响因素' : '缺陷类型'}`;
@@ -166,19 +171,29 @@ Object.assign(chartOption, {
       }
     }
   },
-  legend: [{ data: ['影响因素', '缺陷类型'] }],
+  legend: [{
+    data: ['影响因素', '缺陷类型'],
+    textStyle: {
+      color: 'var(--el-text-color-primary)'
+    }
+  }],
   series: [{
     type: 'graph',
     layout: 'force',
     roam: true,
-    label: { show: true, position: 'right', formatter: '{b}' },
+    label: {
+      show: true,
+      position: 'right',
+      formatter: '{b}',
+      color: '#e0e0e0'
+    },
     force: { repulsion: 700, edgeLength: 60 },
     edgeSymbol: ['none', 'arrow'],
     edgeSymbolSize: 15,
     lineStyle: {
-      color: '#bcbcbc',
-      width: 3,
-      opacity: 1,
+      color: '#a0a0a0',
+      width: 2,
+      opacity: 0.8,
       curveness: 0.1
     },
     data: [],
@@ -220,7 +235,7 @@ const fetchAllNodesAndRelationships = async () => {
 
 const handleCreateOrUpdateNode = async () => {
   if (!nodeForm.name) {
-    ElMessage.warning('节点名称不能为空！');
+    ElMessage.warning('知识条目名称不能为空！');
     return;
   }
   try {
@@ -230,7 +245,7 @@ const handleCreateOrUpdateNode = async () => {
     } else {
       res = await api.createOrUpdateDefect({ name: nodeForm.name, typicalManifestations: nodeForm.typicalManifestations });
     }
-    ElMessage.success(`节点 "${res.data.name}" 操作成功！`);
+    ElMessage.success(`知识条目 "${res.data.name}" 操作成功！`);
     fetchAllNodesAndRelationships();
     Object.assign(nodeForm, { name: '', standard: '', description: '', typicalManifestations: '' });
   } catch (error) {
@@ -240,7 +255,7 @@ const handleCreateOrUpdateNode = async () => {
 
 const handleCreateRelationship = async () => {
   if(!relationshipForm.startNodeName || !relationshipForm.endNodeName) {
-    ElMessage.warning('起始和结束节点名称均不能为空！');
+    ElMessage.warning('起始和结束知识条目名称均不能为空！');
     return;
   }
   try {
@@ -308,12 +323,21 @@ const handleQueryCausalPaths = async () => {
     const pathNodes = Array.from(pathNodesMap.values());
     const newOption = {
       tooltip: chartOption.tooltip,
-      legend: [{ data: ['影响因素', '缺陷类型'] }],
+      legend: [{
+        data: ['影响因素', '缺陷类型'],
+        textStyle: { color: 'var(--el-text-color-primary)' }
+      }],
       series: [{
         type: 'graph',
         layout: 'force',
         roam: true,
-        label: { show: true, position: 'right', formatter: '{b}' },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{b}',
+          // --- 新增颜色 ---
+          color: '#e0e0e0'
+        },
         force: {
           repulsion: 700,
           edgeLength: 150,
@@ -350,7 +374,7 @@ const handleFuzzySearch = async () => {
     const res = await api.findNodesByNameFuzzy(name);
     const foundNodes = res.data;
     if (!foundNodes || foundNodes.length === 0) {
-      ElMessage.info(`未找到名称包含 "${name}" 的节点`);
+      ElMessage.info(`未找到名称包含 "${name}" 的知识条目`);
       myChart.setOption({ series: [{ ...chartOption.series[0], data: [], links: [] }] }, true);
       return;
     }
@@ -372,7 +396,7 @@ const handleFuzzySearch = async () => {
         links: []
       }]
     }, true);
-    ElMessage.success(`已筛选显示 ${foundNodes.length} 个相关节点`);
+    ElMessage.success(`已筛选显示 ${foundNodes.length} 个相关知识条目`);
   } catch (error) {
     ElMessage.error('搜索失败: ' + (error.response?.data || error.message));
   }
@@ -381,7 +405,7 @@ const handleFuzzySearch = async () => {
 const fetchAllFactors = async () => {
   const allFactors = chartOption.series[0].data.filter(node => node.category === 0);
   if (allFactors.length === 0) {
-    ElMessage.info('当前图中没有影响因素节点');
+    ElMessage.info('当前图中没有影响因素知识条目');
     return;
   }
   myChart.setOption({
@@ -397,7 +421,7 @@ const fetchAllFactors = async () => {
 const fetchAllDefects = async () => {
   const allDefects = chartOption.series[0].data.filter(node => node.category === 1);
   if (allDefects.length === 0) {
-    ElMessage.info('当前图中没有缺陷类型节点');
+    ElMessage.info('当前图中没有缺陷类型知识条目');
     return;
   }
   myChart.setOption({
@@ -415,7 +439,7 @@ const handleQueryFactor = async () => {
   if (!name) {
     const allFactors = chartOption.series[0].data.filter(node => node.category === 0);
     if (allFactors.length === 0) {
-      ElMessage.info('当前图中没有影响因素节点');
+      ElMessage.info('当前图中没有影响因素知识条目');
       return;
     }
     myChart.setOption({
@@ -433,7 +457,7 @@ const handleQueryFactor = async () => {
     const nodeData = res.data;
     const isFactor = 'leadsToDefect' in nodeData || 'leadsToFactor' in nodeData;
     if (!isFactor) {
-      ElMessage.error(`节点 "${name}" 是一个缺陷类型，不是影响因素`);
+      ElMessage.error(`知识条目 "${name}" 是一个缺陷类型，不是影响因素`);
       return;
     }
     const singleNodeForGraph = { ...nodeData, category: 0, x: myChart.getWidth() / 2, y: myChart.getHeight() / 2, fixed: true, symbolSize: 40 };
@@ -457,7 +481,7 @@ const handleQueryDefect = async () => {
   if (!name) {
     const allDefects = chartOption.series[0].data.filter(node => node.category === 1);
     if (allDefects.length === 0) {
-      ElMessage.info('当前图中没有缺陷类型节点');
+      ElMessage.info('当前图中没有缺陷类型知识条目');
       return;
     }
     myChart.setOption({
@@ -475,7 +499,7 @@ const handleQueryDefect = async () => {
     const nodeData = res.data;
     const isFactor = 'leadsToDefect' in nodeData || 'leadsToFactor' in nodeData;
     if (isFactor) {
-      ElMessage.error(`节点 "${name}" 是一个影响因素，不是缺陷类型`);
+      ElMessage.error(`知识条目 "${name}" 是一个影响因素，不是缺陷类型`);
       return;
     }
     const singleNodeForGraph = { ...nodeData, category: 1, x: myChart.getWidth() / 2, y: myChart.getHeight() / 2, fixed: true, symbolSize: 40 };
@@ -496,7 +520,7 @@ const handleQueryDefect = async () => {
 
 const handleDeleteNode = async (name) => {
   try {
-    await ElMessageBox.confirm(`确定要删除节点 "${name}" 及其所有关联关系吗？`, '警告', {
+    await ElMessageBox.confirm(`确定要删除知识条目 "${name}" 及其所有关联关系吗？`, '警告', {
       confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
     });
     const res = await api.deleteNodeByName(name);

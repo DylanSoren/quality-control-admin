@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE 最小复现测试</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        input { font-size: 16px; padding: 8px; width: 300px; }
+        button { font-size: 16px; padding: 8px; }
+        #status { margin-top: 10px; font-style: italic; color: #555; }
+        /* 关键：使用 <pre> 标签或 pre-wrap 来自动处理 \n 换行符 */
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+
+            /* 方案A: (推荐) 使用 pre-wrap 样式 */
+            white-space: pre-wrap; /* 保留换行符 \n 和空格 */
+
+            /* 方案B: 如果用 <pre> 标签，则此样式不是必需的 */
+        }
+    </style>
+</head>
+<body>
+
+<h1>SSE 最小复现测试</h1>
+<p>
+    此页面不含 Vue。它使用原生 EventSource 连接到
+    <code>/api/graph/narrate/stream</code>。
+</p>
+
+<div>
+    <input type="text" id="defectName" value="镀层针孔" placeholder="输入缺陷类型">
+    <button id="startButton">开始分析</button>
+    <button id="stopButton">停止</button>
+</div>
+
+<div id="status">准备就绪...</div>
+
+<h2>分析结果:</h2>
+<div id="output"></div>
+
+<script>
+    const defectInput = document.getElementById('defectName');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const statusDiv = document.getElementById('status');
+    const outputDiv = document.getElementById('output');
+
+    let currentEventSource = null;
+
+    startButton.onclick = function() {
+        if (currentEventSource) {
+            currentEventSource.close();
+        }
+
+        const defectType = defectInput.value;
+        if (!defectType) {
+            alert('请输入缺陷类型');
+            return;
+        }
+
+        outputDiv.textContent = ''; // 清空内容
+        statusDiv.textContent = '正在连接 AI 智能体...';
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        // 1. 构造 URL，与 graphApi.js 一致
+        const url = `/api/graph/narrate/stream?defectType=${encodeURIComponent(defectType)}`;
+
+        // 2. 创建 EventSource 实例
+        currentEventSource = new EventSource(url);
+
+        // 3. 监听 "message" 事件
+        currentEventSource.addEventListener('message', (event) => {
+
+            // --- 关键修复在这里 ---
+            // AI 在流式传输中发送的是 '\\n' 字符串
+            // 我们必须用正则表达式将其替换为真正的 '\n' 换行符
+
+            const processedData = event.data.replace(/\\n/g, '\n');
+
+            // ---------------------
+
+            // 附加处理过的、包含真正 \n 的文本
+            outputDiv.textContent += processedData;
+        });
+
+        // 4. 监听后端定义的 "END" 事件
+        currentEventSource.addEventListener('END', (event) => {
+            statusDiv.textContent = `分析完成。(${event.data})`;
+            closeStream();
+        });
+
+        // 5. 监听后端定义的 "ERROR" 事件
+        currentEventSource.addEventListener('ERROR', (event) => {
+            statusDiv.textContent = `分析时发生错误: ${event.data}`;
+            closeStream();
+        });
+
+        // 6. 监听底层的 "error" 事件 (例如网络中断)
+        currentEventSource.onerror = (error) => {
+            if (statusDiv.textContent === '正在连接 AI 智能体...') {
+                statusDiv.textContent = '连接失败。请检查后端服务是否开启。';
+            } else if (currentEventSource.readyState === EventSource.CONNECTING) {
+                // 自动重连中...
+                statusDiv.textContent = '网络连接中断，正在尝试重连...';
+            } else {
+                // 发生了未知错误
+                statusDiv.textContent = '发生未知网络错误。';
+            }
+
+            // 如果是致命错误，我们在这里也关闭它
+            if (currentEventSource.readyState === EventSource.CLOSED) {
+                closeStream();
+            }
+        };
+    };
+
+    stopButton.onclick = function() {
+        if (currentEventSource) {
+            statusDiv.textContent = '分析已手动停止。';
+            closeStream();
+        }
+    };
+
+    function closeStream() {
+        if (currentEventSource) {
+            currentEventSource.close();
+            currentEventSource = null;
+        }
+        startButton.disabled = false;
+        stopButton.disabled = true;
+    }
+
+</script>
+
+</body>
+</html>

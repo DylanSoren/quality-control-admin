@@ -1,6 +1,6 @@
 <template>
-  <el-container style="height: 100vh; display: flex; flex-direction: column;">
-    <el-header style="border-bottom: 1px solid #eee; padding: 0; display: flex; align-items: center;">
+  <el-container style="height: 100vh; display: flex; flex-direction: column; background-color: var(--el-bg-color);">
+    <el-header style="border-bottom: 1px solid var(--el-border-color); padding: 0; display: flex; align-items: center;">
       <el-menu
           :default-active="activeView"
           mode="horizontal"
@@ -21,23 +21,21 @@
       <div class="header-actions" style="padding-right: 20px;">
         <template v-if="activeView === 'graph'">
           <el-button
-              type="success"
+              type="primary"
               @click="callGraphMethod('fetchAllNodesAndRelationships')"
               :loading="isGraphLoading"
           >
             刷新知识库
           </el-button>
           <el-button
-              color="#626aef"
-              type="success"
+              type="primary"
               @click="callGraphMethod('fetchAllFactors')"
               :loading="isGraphLoading"
           >
             加载全部影响因素
           </el-button>
           <el-button
-              color="#626aef"
-              type="success"
+              type="primary"
               @click="callGraphMethod('fetchAllDefects')"
               :loading="isGraphLoading"
           >
@@ -93,9 +91,13 @@ const callGraphMethod = (methodName) => {
 <style scoped>
 .el-header {
   white-space: nowrap;
+  /* 4. 确保 header 背景色生效 */
+  background-color: var(--el-bg-color);
 }
 .el-menu--horizontal {
   border-bottom: none;
+  /* 5. 确保 menu 背景色生效 */
+  background-color: var(--el-menu-bg-color);
 }
 .el-main {
   height: calc(100vh - 60px);

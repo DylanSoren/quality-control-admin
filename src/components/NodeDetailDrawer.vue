@@ -1,7 +1,7 @@
 <template>
   <el-drawer
       :model-value="modelValue"
-      title="节点详情"
+      title="知识条目详情"
       direction="rtl"
       @close="$emit('update:modelValue', false)"
   >
@@ -25,11 +25,11 @@
       </div>
 
       <div v-if="viewMode !== 'query'" class="drawer-footer">
-        <el-button type="danger" @click="handleDelete" :disabled="!node.name">删除此节点</el-button>
+        <el-button type="danger" @click="handleDelete" :disabled="!node.name">删除此知识条目</el-button>
       </div>
     </div>
     <div v-else>
-      <p>没有选中的节点</p>
+      <p>没有选中的知识条目</p>
     </div>
   </el-drawer>
 </template>
@@ -69,11 +69,20 @@ const handleDelete = () => {
 
 .drawer-footer {
   margin-top: 40px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--el-border-color);
   padding-top: 20px;
 }
 
 p {
   line-height: 1.8;
+  color: var(--el-text-color-regular);
+}
+
+div > p {
+  color: var(--el-text-color-regular);
+}
+
+h4 {
+  color: var(--el-text-color-primary);
 }
 </style>
